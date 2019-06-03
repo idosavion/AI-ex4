@@ -56,7 +56,6 @@ class ValueIterationAgent(ValueEstimationAgent):
                 max_pair = max(pairs, key=lambda x: x[1])
                 curr_values[state] = max_pair[1]
             self.values = curr_values
-            print(self.values)
 
     def getValue(self, state):
         """
@@ -91,7 +90,6 @@ class ValueIterationAgent(ValueEstimationAgent):
         if (len(possible_actions)) == 0:
             return None
         max_pair = self.get_best_action_and_reward(possible_actions, state)
-        print(max_pair)
         return max_pair[0]
 
     def get_best_action_and_reward(self, possible_actions, state):
