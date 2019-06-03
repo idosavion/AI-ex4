@@ -10,63 +10,104 @@ import mdp, util
 
 from learningAgents import ValueEstimationAgent
 
+
 class ValueIterationAgent(ValueEstimationAgent):
-  """
-      * Please read learningAgents.py before reading this.*
+    """
+        * Please read learningAgents.py before reading this.*
 
-      A ValueIterationAgent takes a Markov decision process
-      (see mdp.py) on initialization and runs value iteration
-      for a given number of iterations using the supplied
-      discount factor.
-  """
-  def __init__(self, mdp, discount = 0.9, iterations = 100):
+        A ValueIterationAgent takes a Markov decision process
+        (see mdp.py) on initialization and runs value iteration
+        for a given number of iterations using the supplied
+        discount factor.
     """
-      Your value iteration agent should take an mdp on
-      construction, run the indicated number of iterations
-      and then act according to the resulting policy.
-    
-      Some useful mdp methods you will use:
-          mdp.getStates()
-          mdp.getPossibleActions(state)
-          mdp.getTransitionStatesAndProbs(state, action)
-          mdp.getReward(state, action, nextState)
-    """
-    self.mdp = mdp
-    self.discount = discount
-    self.iterations = iterations
-    self.values = util.Counter() # A Counter is a dict with default 0
-     
-    "*** YOUR CODE HERE ***"
-    
-  def getValue(self, state):
-    """
-      Return the value of the state (computed in __init__).
-    """
-    return self.values[state]
 
-  def getQValue(self, state, action):
-    """
-      The q-value of the state action pair
-      (after the indicated number of value iteration
-      passes).  Note that value iteration does not
-      necessarily create this quantity and you may have
-      to derive it on the fly.
-    """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    def __init__(self, mdp: mdp.MarkovDecisionProcess, discount=0.9, iterations=100):
+        """
+          Your value iteration agent should take an mdp on
+          construction, run the indicated number of iterations
+          and then act according to the resulting policy.
 
-  def getPolicy(self, state):
-    """
-      The policy is the best action in the given state
-      according to the values computed by value iteration.
-      You may break ties any way you see fit.  Note that if
-      there are no legal actions, which is the case at the
-      terminal state, you should return None.
-    """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+          Some useful mdp methods you will use:
+              mdp.getStates()
+              mdp.getPossibleActions(state)
+              mdp.getTransitionStatesAndProbs(state, action)
+              mdp.getReward(state, action, nextState)
+        """
+        self.mdp = mdp
+        self.discount = discount
+        self.iterations = iterations
+        self.values = util.Counter()  # A Counter is a dict with default 0
 
-  def getAction(self, state):
-    "Returns the policy at the state (no exploration)."
-    return self.getPolicy(state)
-  
+        "*** YOUR CODE HERE ***"
+        for i in range(iterations):
+            curr_values = self.values.copy()
+            for state in mdp.getStates():
+                if state == 'TERMINAL_STATE':
+                    curr_values[state] = 0
+                    continue
+                pairs = []  # (action,reward)
+                for j, nextAction in enumerate(self.mdp.getPossibleActions(state)):
+                    state_and_probs = self.mdp.getTransitionStatesAndProbs(state, nextAction)
+                    reward = 0
+                    for possible_state, prob in state_and_probs:
+                        reward += prob * (self.mdp.getReward(state, nextAction, possible_state) +
+                                          self.discount * self.values[possible_state])
+                    pairs.append((nextAction, reward))
+                max_pair = max(pairs, key=lambda x: x[1])
+                curr_values[state] = max_pair[1]
+            self.values = curr_values
+            print(self.values)
+
+    def getValue(self, state):
+        """
+          Return the value of the state (computed in __init__).
+        """
+        return self.values[state]
+
+    def getQValue(self, state, action):
+        """
+          The q-value of the state action pair
+          (after the indicated number of value iteration
+          passes).  Note that value iteration does not
+          necessarily create this quantity and you may have
+          to derive it on the fly.
+        """
+        "*** YOUR CODE HERE ***"
+        value = self.reward_from_state_and_action(action, state)
+        for next_state, prob in self.mdp.getTransitionStatesAndProbs(state, action):
+            value += self.discount * prob * self.values[next_state]
+        return value
+
+    def getPolicy(self, state):
+        """
+          The policy is the best action in the given state
+          according to the values computed by value iteration.
+          You may break ties any way you see fit.  Note that if
+          there are no legal actions, which is the case at the
+          terminal state, you should return None.
+        """
+        "*** YOUR CODE HERE ***"
+        possible_actions = self.mdp.getPossibleActions(state)
+        if (len(possible_actions)) == 0:
+            return None
+        max_pair = self.get_best_action_and_reward(possible_actions, state)
+        print(max_pair)
+        return max_pair[0]
+
+    def get_best_action_and_reward(self, possible_actions, state):
+        action_reward_list = []
+        for action in possible_actions:
+            reward = self.reward_from_state_and_action(action, state)
+            action_reward_list.append((action, reward))
+        max_pair = max(action_reward_list, key=lambda x: x[1])
+        return max_pair
+
+    def reward_from_state_and_action(self, action, state):
+        reward = []
+        for nextState, prob in self.mdp.getTransitionStatesAndProbs(state, action):
+                reward += [prob * self.values[nextState]]
+        return sum(reward)
+
+    def getAction(self, state):
+        "Returns the policy at the state (no exploration)."
+        return self.getPolicy(state)
